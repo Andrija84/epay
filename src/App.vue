@@ -6,8 +6,8 @@
        <h2>Simple weather</h2>
        <input type="text" v-model="searchCity">
 
-       <select v-if="searchCity.length > 0" class="" name="" v-model="cityLatLon">
-          <option loading="lazy" v-for="filterSearchCity in filterSearchCities" :key="filterSearchCity.city_id" :value="filterSearchCity.lat+','+filterSearchCity.lon">
+       <select v-if="searchCity.length > 0" class="" name="" v-model="cityLatLonSearch">
+          <option loading="lazy" v-for="filterSearchCity in filterSearchCities" :key="filterSearchCity.city_id" :value="filterSearchCity.lat +','+filterSearchCity.lon">
             {{ filterSearchCity.city_name }}
           </option>
       </select>
@@ -26,7 +26,7 @@
         <div v-if="cityDataNextHours">
             <ul class="forecast-list">
             <li v-for="(city, index) in cityDataNextHours.hourly" :key="index"> 
-              <span class="temp" v-if="index < 8">{{city.temp}}°</span>
+              <span class="temp" v-if="index < 8">{{city.temp | tempFormat}}°</span>
               <span class="pop" v-if="index < 8">{{city.pop}}</span>
               <span class="time" v-if="index < 8">{{city.dt | dateFormat}}</span>
               <span class="icon" v-if="index < 8"><img :src="`https://openweathermap.org/img/wn/${city.weather[0].icon}.png`" alt=""></span>
@@ -69,6 +69,7 @@ export default {
   data(){
     return{
       cityLatLon:[-22.90278,-43.2075], // Default city id on init
+      cityLatLonSearch: '',
       citiesPreDef:[
          {"city_id":3451190,"city_name":"Rio de Janeiro","state_code":"21","country_code":"BR","country_full":"Brazil","lat":-22.90278,"lon":-43.2075}, 
          {"city_id":1816670,"city_name":"Beijing","state_code":"22","country_code":"CN","country_full":"Paracel Islands","lat":39.9075,"lon":116.39723}, 
@@ -84,13 +85,14 @@ export default {
   methods:{
     changeCity: function (lat, lon) {
       //console.log(id);
-      this.cityLatLon = [lat, lon];
+      this.cityLatLon = [];
+      this.cityLatLon.push(lat,lon);
     },
     //https://openweathermap.org/api/one-call-api
     initCityDataNextHours(){
       axios.get(`https://api.openweathermap.org/data/2.5/onecall?lat=${this.cityLatLon[0]}&lon=${this.cityLatLon[1]}&exclude=current,daily,minutely,alerts&appid=1f89da47fe4d0be6bbbf376af70bdb58&units=metric`)  
         .then((response) => {
-          console.log(response.data);
+          //console.log(response.data);
           this.cityDataNextHours = response.data;
           //this.invoicesLoaded = true;
         })
@@ -139,12 +141,17 @@ export default {
     }
   },
   watch: {
-    cityIdSelected: function(val){
-      //console.log(val);
-    },
     // whenever question changes, this function will run
-    cityId: function (val) {
-      //console.log(this.cityData);
+    cityLatLonSearch: function(val) {
+      //console.log(val);
+      let valArr = val.split(',')
+      //console.log(valArr);
+      this.cityLatLon = [];
+      this.cityLatLon = valArr;
+      this.initCityDataFiveDays();
+      this.initCityDataNextHours();
+    },
+    cityLatLon: function(val) {
       this.initCityDataFiveDays();
       this.initCityDataNextHours();
     },
@@ -168,34 +175,51 @@ export default {
         this.citiesData = [];
       }
     },
-    cityLatLon: function(val){
-     // console.log(val);
-    }
+  
   },
   filters: {
     dateFormat: function (val) {
       if (!val) return ''
-       return moment.unix(val).format("hh:mm A");
+       val =  moment.unix(val).format("hh A");
+       return val.replace(/^0(?:0:0?)?/, '');
+
+
+    },
+    tempFormat: function(val){
+       val = val.toString();
+       return val.slice(0,2);
     }
   }
 }
 </script>
 
 <style>
+
+
+html, body{
+  background-color:#0090ff;
+  width:100vw;
+  height:100vh;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+
+}
+header{
+  
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 ul{
   list-style-type: none;
 }
-ul.forecast-list{overflow-x: scroll;display:flex;}
-ul.forecast-list li{display:grid;}
-
+ul.forecast-list{overflow-x: scroll;display:flex; }
+ul.forecast-list li{  display: grid;}
 .content{
   width:100%;
   height:100%;  
