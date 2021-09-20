@@ -1,4 +1,4 @@
-# ipay
+# epay
 
 ## Project setup
 ```
